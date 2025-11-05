@@ -1,0 +1,14 @@
+FROM quay.io/centos-bootc/centos-bootc:stream9
+RUN rpm-ostree install python3-pip git && rpm-ostree cleanup -m
+# App bits
+COPY ../../gateway/ /opt/rhoim/gateway/
+RUN pip3 install --break-system-packages -r /opt/rhoim/gateway/requirements.txt
+# Helpers
+COPY ../../scripts/model_pull.sh /opt/rhoim/bin/model_pull.sh
+RUN chmod +x /opt/rhoim/bin/model_pull.sh
+# Systemd units
+COPY rhoim-model-pull.service /usr/lib/systemd/system/
+COPY rhoim-vllm.service       /usr/lib/systemd/system/
+COPY rhoim-gateway.service    /usr/lib/systemd/system/
+RUN systemctl enable rhoim-model-pull.service rhoim-vllm.service rhoim-gateway.service
+CMD ["/sbin/init"]

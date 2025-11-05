@@ -1,0 +1,15 @@
+[Unit]
+Description=RHOIM vLLM
+After=network-online.target rhoim-model-pull.service
+# Optional GPU guard:
+# ExecStartPre=/usr/bin/nvidia-smi
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/rhoim
+ExecStart=/usr/bin/python3 -m vllm.entrypoints.openai.api_server \
+  --model ${MODEL_URI} --host 0.0.0.0 --port 8000 \
+  --gpu-memory-utilization 0.9 --max-model-len 131072
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
