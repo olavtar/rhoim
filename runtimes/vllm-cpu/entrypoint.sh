@@ -8,7 +8,9 @@ exec python3 -m vllm.entrypoints.openai.api_server \
   --model "${MODEL_URI}" \
   --host 0.0.0.0 --port "${PORT}" \
   --device cpu --dtype float32 \
-  --max-model-len 8192
+  --max-model-len 8192 \
+  --attention-backend torch \
+  --enforce-eager
 
 
 

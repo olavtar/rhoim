@@ -10,13 +10,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ## Ensure vLLM build scripts detect a release environment without git metadata
 ENV VLLM_VERSION=${VLLM_VERSION} \
     VLLM_RELEASE_BUILD=1 \
-    VLLM_TARGET_DEVICE=cpu
+    VLLM_TARGET_DEVICE=cpu \
+    VLLM_USE_CUDA=0 \
+    VLLM_USE_FLASHINFER=0
 
 # Newer pip helps resolve/platform-select wheels better
 RUN pip3 install --upgrade pip
 
-# vLLM CPU + minimal deps; include HF CLI for optional model pulls
-RUN pip3 install --no-cache-dir $PIP_INSTALL_OPTS \
+# Ensure CPU-only torch is used (avoid CUDA libs)
+RUN pip3 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.4.1 \
+ && pip3 install --no-cache-dir $PIP_INSTALL_OPTS \
     vllm==${VLLM_VERSION} fastapi uvicorn prometheus-client \
     "huggingface_hub[cli]"
 
