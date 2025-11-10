@@ -1,14 +1,22 @@
 FROM quay.io/centos-bootc/centos-bootc:stream9
 RUN rpm-ostree install python3-pip git && rpm-ostree cleanup -m
-# App bits
-COPY ../../gateway/ /opt/rhoim/gateway/
-RUN pip3 install --break-system-packages -r /opt/rhoim/gateway/requirements.txt
+# App bits (paths are relative to repo root build context)
+COPY gateway/ /opt/rhoim/gateway/
+# Python virtualenv to avoid RPM-managed system Python conflicts
+RUN python3 -m venv /opt/rhoim/venv
+RUN /opt/rhoim/venv/bin/pip install --upgrade pip
+RUN /opt/rhoim/venv/bin/pip install -r /opt/rhoim/gateway/requirements.txt
+# CPU Torch + vLLM (CPU)
+RUN /opt/rhoim/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.4.1 && \
+    /opt/rhoim/venv/bin/pip install --no-cache-dir vllm==0.10.2 "huggingface_hub[cli]"
 # Helpers
-COPY ../../scripts/model_pull.sh /opt/rhoim/bin/model_pull.sh
+COPY scripts/model_pull.sh /opt/rhoim/bin/model_pull.sh
 RUN chmod +x /opt/rhoim/bin/model_pull.sh
+# Default environment for services
+COPY deploy/bootc/rhoim.env /etc/sysconfig/rhoim
 # Systemd units
-COPY rhoim-model-pull.service /usr/lib/systemd/system/
-COPY rhoim-vllm.service       /usr/lib/systemd/system/
-COPY rhoim-gateway.service    /usr/lib/systemd/system/
+COPY deploy/bootc/rhoim-model-pull.service /usr/lib/systemd/system/
+COPY deploy/bootc/rhoim-vllm.service       /usr/lib/systemd/system/
+COPY deploy/bootc/rhoim-gateway.service    /usr/lib/systemd/system/
 RUN systemctl enable rhoim-model-pull.service rhoim-vllm.service rhoim-gateway.service
 CMD ["/sbin/init"]
